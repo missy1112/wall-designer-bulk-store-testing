@@ -32,3 +32,19 @@ def test_store_pages_load_successfully(url):
 
     finally:
         driver.quit()
+        
+def test_collection_page_displays_products():
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+
+    try:
+        driver.get("https://walldesigner.co.za/collections/all")
+
+        page_source = driver.page_source.lower()
+
+        assert "products" in page_source
+        assert "wall designer" in page_source
+        assert "from r" in page_source
+        assert "choose options" in page_source
+
+    finally:
+        driver.quit()
