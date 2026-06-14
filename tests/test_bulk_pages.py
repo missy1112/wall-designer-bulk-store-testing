@@ -4,6 +4,8 @@ import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 
@@ -73,6 +75,55 @@ def test_product_page_opens_from_collection():
         assert page_title != ""
         assert "walldesigner" in driver.current_url.lower()
         assert "add to cart" in page_source or "choose options" in page_source or "buy" in page_source
+
+    finally:
+        driver.quit()
+
+def test_product_size_selection_adds_item_to_cart():
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+
+    try:
+        driver.get("https://walldesigner.co.za/collections/all")
+
+        product_links = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a[href*='/products/']"))
+        )
+
+        first_product_url = product_links[0].get_attribute("href")
+
+        assert first_product_url is not None
+        assert "/products/" in first_product_url
+
+        driver.get(first_product_url)
+
+        possible_size_options = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located(
+                (
+                    By.XPATH,
+                    "//button[not(@disabled)] | //label | //input[@type='radio']/following-sibling::label"
+                )
+            )
+        )
+
+        clicked_size = False
+
+        for option in possible_size_options:
+            option_text = option.text.strip().lower()
+
+            if option.is_displayed() and option.is_enabled():
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", option)
+                driver.execute_script("arguments[0].click();", option)
+                clicked_size = True
+                break
+
+        assert clicked_size is True
+
+        driver.get("https://walldesigner.co.za/cart")
+
+        cart_page_source = driver.page_source.lower()
+
+        assert "cart" in cart_page_source
+        assert "checkout" in cart_page_source or "subtotal" in cart_page_source or "total" in cart_page_source
 
     finally:
         driver.quit()
